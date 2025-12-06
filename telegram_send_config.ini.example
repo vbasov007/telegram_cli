@@ -1,0 +1,13 @@
+# Telegram API Configuration
+#
+# To get your API credentials:
+# 1. Go to https://my.telegram.org/auth
+# 2. Log in with your phone number
+# 3. Go to 'API development tools'
+# 4. Create a new application
+# 5. Copy your api_id and api_hash here
+#
+# Then rename this file to telegram_send_config.ini
+
+api_id = YOUR_API_ID
+api_hash = YOUR_API_HASH
