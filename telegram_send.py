@@ -17,7 +17,7 @@ def get_base_path():
         return Path(__file__).parent
 
 
-def load_config():
+def load_config(bot_mode=False):
     base_path = get_base_path()
     config_file = base_path / "telegram_send_config.ini"
 
@@ -34,11 +34,21 @@ def load_config():
                 key, value = line.split('=', 1)
                 config[key.strip()] = value.strip()
 
-    required_keys = ['api_id', 'api_hash']
-    for key in required_keys:
-        if key not in config:
-            print(f"Error: {key} not found in telegram_send_config.ini")
+    # Validate required keys based on mode
+    if bot_mode:
+        # Bot mode requires bot_token
+        if 'bot_token' not in config or not config['bot_token']:
+            print("Error: bot_token not found in telegram_send_config.ini")
+            print("For bot mode (-b flag), you must provide bot_token")
             sys.exit(1)
+    else:
+        # User mode requires api_id and api_hash
+        required_keys = ['api_id', 'api_hash']
+        for key in required_keys:
+            if key not in config:
+                print(f"Error: {key} not found in telegram_send_config.ini")
+                print("For user mode, you must provide api_id and api_hash")
+                sys.exit(1)
 
     return config
 
@@ -62,18 +72,35 @@ def load_message_from_file(message_param):
     return message_param
 
 
-def send_message(recipient, message, attachments, config):
-    api_id = int(config['api_id'])
-    api_hash = config['api_hash']
-
+def send_message(recipient, message, attachments, config, bot_mode=False):
     base_path = get_base_path()
-    session_path = str(base_path / "telegram_cli_session")
 
-    app = Client(
-        session_path,
-        api_id=api_id,
-        api_hash=api_hash
-    )
+    # Check if running in bot mode or user mode based on -b flag
+    if bot_mode:
+        # Bot mode (with -b flag)
+        print("Running in bot mode...")
+        api_id = int(config['api_id']) if 'api_id' in config else None
+        api_hash = config['api_hash'] if 'api_hash' in config else None
+
+        app = Client(
+            "telegram_bot",
+            api_id=api_id,
+            api_hash=api_hash,
+            bot_token=config['bot_token'],
+            workdir=str(base_path)
+        )
+    else:
+        # User mode (default, without -b flag)
+        print("Running in user mode...")
+        api_id = int(config['api_id'])
+        api_hash = config['api_hash']
+        session_path = str(base_path / "telegram_cli_session")
+
+        app = Client(
+            session_path,
+            api_id=api_id,
+            api_hash=api_hash
+        )
 
     with app:
         try:
@@ -129,9 +156,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  Send a text message:
+  Send a text message (user mode):
     python telegram_send.py @username "Hello, World!"
     python telegram_send.py +1234567890 "Hello!"
+
+  Send message as bot (bot mode with -b flag):
+    python telegram_send.py -b 123456789 "Hello from bot!"
 
   Send message from file:
     python telegram_send.py @username message.txt
@@ -146,8 +176,11 @@ Examples:
   Send multiple attachments:
     python telegram_send.py @username "Files attached" -a file1.pdf -a file2.jpg
 
-  Send attachment without message:
-    python telegram_send.py @username -a document.pdf
+  Send attachment as bot:
+    python telegram_send.py -b 123456789 -a document.pdf
+
+Note: Bot mode (-b) requires bot_token in config and can only message users
+      who have started a conversation with the bot. Use numeric user ID.
         """
     )
 
@@ -170,6 +203,12 @@ Examples:
         help='File to attach (can be used multiple times)'
     )
 
+    parser.add_argument(
+        '-b', '--bot',
+        action='store_true',
+        help='Use bot mode (requires bot_token in config)'
+    )
+
     args = parser.parse_args()
 
     if not args.message and not args.attachments:
@@ -177,8 +216,8 @@ Examples:
 
     message = load_message_from_file(args.message)
 
-    config = load_config()
-    send_message(args.recipient, message, args.attachments, config)
+    config = load_config(args.bot)
+    send_message(args.recipient, message, args.attachments, config, args.bot)
 
 
 if __name__ == '__main__':

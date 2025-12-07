@@ -1,13 +1,26 @@
 # Telegram API Configuration
 #
+# === USER MODE (send as your personal account) ===
 # To get your API credentials:
 # 1. Go to https://my.telegram.org/auth
 # 2. Log in with your phone number
 # 3. Go to 'API development tools'
 # 4. Create a new application
-# 5. Copy your api_id and api_hash here
+# 5. Copy your api_id and api_hash below
 #
 # Then rename this file to telegram_send_config.ini
 
 api_id = YOUR_API_ID
 api_hash = YOUR_API_HASH
+
+# === BOT MODE (send as a Telegram bot) ===
+# To use bot mode instead:
+# 1. Create a bot with @BotFather on Telegram
+# 2. Get your bot token from @BotFather
+# 3. Uncomment and add your bot_token below
+# 4. You can optionally provide api_id and api_hash for better performance
+#
+# Note: Bots can only send messages to users who have started a conversation
+# with the bot first. Use the user's numeric ID as the recipient.
+
+# bot_token = YOUR_BOT_TOKEN
