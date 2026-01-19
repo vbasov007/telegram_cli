@@ -21,33 +21,39 @@ def load_config(bot_mode=False):
     base_path = get_base_path()
     config_file = base_path / "telegram_send_config.ini"
 
-    if not config_file.exists():
-        print("Error: telegram_send_config.ini not found. Please create it from telegram_send_config.ini.example")
-        print(f"Looking for config at: {config_file.absolute()}")
-        sys.exit(1)
-
     config = {}
-    with open(config_file, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
-                config[key.strip()] = value.strip()
+
+    if config_file.exists():
+        # Load from config file
+        with open(config_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    config[key.strip()] = value.strip()
+    else:
+        # Load from environment variables
+        print("Config file not found. Attempting to load from environment variables...")
+        config['api_id'] = os.environ.get('TELEGRAM_API_ID', '')
+        config['api_hash'] = os.environ.get('TELEGRAM_API_HASH', '')
+        config['bot_token'] = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 
     # Validate required keys based on mode
     if bot_mode:
         # Bot mode requires bot_token
         if 'bot_token' not in config or not config['bot_token']:
-            print("Error: bot_token not found in telegram_send_config.ini")
+            print("Error: bot_token not found in telegram_send_config.ini or environment variables")
             print("For bot mode (-b flag), you must provide bot_token")
+            print("Set it in config file or as TELEGRAM_BOT_TOKEN environment variable")
             sys.exit(1)
     else:
         # User mode requires api_id and api_hash
         required_keys = ['api_id', 'api_hash']
         for key in required_keys:
-            if key not in config:
-                print(f"Error: {key} not found in telegram_send_config.ini")
+            if key not in config or not config[key]:
+                print(f"Error: {key} not found in telegram_send_config.ini or environment variables")
                 print("For user mode, you must provide api_id and api_hash")
+                print(f"Set them in config file or as TELEGRAM_{key.upper()} environment variable")
                 sys.exit(1)
 
     return config
